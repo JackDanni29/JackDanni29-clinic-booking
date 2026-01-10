@@ -28,11 +28,14 @@
                 <input type="date" class="form-control" id="date" required>
             </div>
             <div class="mb-3">
+                <label class="form-label">預約時間</label>
+                <input type="time" class="form-control" id="time" required>
+            </div>
+            <div class="mb-3">
                 <label class="form-label">預約科別</label>
                 <select class="form-control" id="dept">
-                    <option value="內科">一般內科</option>
-                    <option value="牙科">牙科</option>
-                    <option value="皮膚科">皮膚科</option>
+                    <option value="內科">內科</option>
+                    <option value="針灸科">針灸科</option>
                 </select>
             </div>
             <button type="submit" class="btn btn-primary w-100 btn-lg">確認送出</button>
@@ -59,11 +62,12 @@
             const name = document.getElementById('name').value;
             const phone = document.getElementById('phone').value;
             const date = document.getElementById('date').value;
+            const time = document.getElementById('time').value;
             const dept = document.getElementById('dept').value;
 
             // 組合要回傳給機器人的訊息
             // 這裡我們用一個特殊的格式，讓後端好處理
-            const msg = `[掛號資料]\n姓名：${name}\n電話：${phone}\n日期：${date}\n科別：${dept}`;
+            const msg = `[掛號資料]\n姓名：${name}\n電話：${phone}\n日期：${date}\n時間：${time}\n科別：${dept}`;
 
             // 透過 LIFF 幫使用者傳送訊息到聊天室
             liff.sendMessages([{
