@@ -102,8 +102,8 @@
     function generateTimeSlots() {
         timeSelect.innerHTML = ''; // 清空
         
-        const morningSlots = generateIntervals(9, 0, 12, 0, 15);
-        const afternoonSlots = generateIntervals(14, 30, 17, 30, 15);
+        const morningSlots = generateIntervals(9, 0, 11, 45, 15);
+        const afternoonSlots = generateIntervals(14, 30, 17, 15, 15);
         const allSlots = [...morningSlots, ...afternoonSlots];
 
         // 預設選項
