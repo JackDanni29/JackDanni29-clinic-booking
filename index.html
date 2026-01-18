@@ -1,85 +1,168 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>診所預約掛號</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <title>倪好中醫診所 - 線上掛號</title>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
-        body { padding: 20px; background-color: #f8f9fa; }
-        .container { max-width: 500px; background: white; padding: 20px; border-radius: 10px; shadow: 0 0 10px rgba(0,0,0,0.1); }
+        body { font-family: "Microsoft JhengHei", sans-serif; padding: 20px; background-color: #f5f5f5; }
+        .container { max-width: 500px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #333; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, select { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background-color: #06c755; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; margin-top: 10px; }
+        button:hover { background-color: #05b34c; }
+        #status { margin-top: 10px; text-align: center; color: red; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h3 class="text-center mb-4">預約掛號單</h3>
-        <form id="bookingForm">
-            <div class="mb-3">
-                <label class="form-label">姓名</label>
-                <input type="text" class="form-control" id="name" required placeholder="請輸入真實姓名">
-            </div>
-            <div class="mb-3">
-                <label class="form-label">聯絡電話</label>
-                <input type="tel" class="form-control" id="phone" required placeholder="09xx-xxx-xxx">
-            </div>
-            <div class="mb-3">
-                <label class="form-label">預約日期</label>
-                <input type="date" class="form-control" id="date" required>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">預約時間</label>
-                <input type="time" class="form-control" id="time" required>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">預約科別</label>
-                <select class="form-control" id="dept">
-                    <option value="內科">內科</option>
-                    <option value="針灸">針灸</option>
-                </select>
-            </div>
-            <button type="submit" class="btn btn-primary w-100 btn-lg">確認送出</button>
-        </form>
-    </div>
 
-    <script>
-        // 這裡要填入你申請到的 LIFF ID
-        const MY_LIFF_ID = "2008852158-1G08SLHh";
+<div class="container">
+    <h2>倪好中醫診所<br>線上掛號</h2>
+    <form id="bookingForm">
+        <div class="form-group">
+            <label for="name">姓名</label>
+            <input type="text" id="name" placeholder="請輸入真實姓名" required>
+        </div>
+        <div class="form-group">
+            <label for="phone">電話</label>
+            <input type="tel" id="phone" placeholder="09xxxxxxxx" required>
+        </div>
+        <div class="form-group">
+            <label for="date">預約日期 (週六日休診)</label>
+            <input type="date" id="date" required>
+        </div>
+        <div class="form-group">
+            <label for="time">預約時段 (每15分鐘一診)</label>
+            <select id="time" required>
+                <option value="">請先選擇日期</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="dept">看診科別</label>
+            <select id="dept" required>
+                <option value="內科">內科</option>
+                <option value="針灸">針灸</option>
+                <option value="傷科">傷科</option>
+            </select>
+        </div>
+        <input type="hidden" id="lineId">
+        
+        <button type="submit" id="submitBtn">送出預約</button>
+        <p id="status"></p>
+    </form>
+</div>
 
-        // 初始化 LIFF
-        liff.init({ liffId: MY_LIFF_ID }).then(() => {
+<script>
+    // 初始化 LIFF
+    async function initializeLiff() {
+        try {
+            // 請換成您自己的 LIFF ID
+            await liff.init({ liffId: "2006852158-1G08SLHh" }); 
             if (!liff.isLoggedIn()) {
                 liff.login();
+            } else {
+                const profile = await liff.getProfile();
+                // 自動填入 LINE ID (雖然不會顯示在畫面上，但會跟著表單送出)
+                document.getElementById('lineId').value = profile.userId;
             }
-        }).catch((err) => {
-            console.log('初始化失敗', err);
+        } catch (error) {
+            console.error('LIFF Init Failed', error);
+            document.getElementById('status').innerText = "LIFF 初始化失敗，請用 LINE 開啟";
+        }
+    }
+
+    // --- 日期與時間邏輯設定 ---
+    const dateInput = document.getElementById('date');
+    const timeSelect = document.getElementById('time');
+
+    // 1. 設定日期限制：不能選過去，排除六日
+    const today = new Date().toISOString().split('T')[0];
+    dateInput.setAttribute('min', today); // 設定最小值為今天
+
+    dateInput.addEventListener('change', function() {
+        const selectedDate = new Date(this.value);
+        const day = selectedDate.getDay(); // 0=週日, 6=週六
+
+        // 如果選到週六或週日
+        if (day === 0 || day === 6) {
+            alert("抱歉，本院週六、週日休診，請選擇平日。");
+            this.value = ''; // 清空選擇
+            timeSelect.innerHTML = '<option value="">請先選擇日期</option>';
+            return;
+        }
+
+        // 產生時間選項
+        generateTimeSlots();
+    });
+
+    // 2. 產生時間選項 (09:00-12:00, 14:30-17:30, 間隔15分)
+    function generateTimeSlots() {
+        timeSelect.innerHTML = ''; // 清空
+        
+        const morningSlots = generateIntervals(9, 0, 12, 0, 15);
+        const afternoonSlots = generateIntervals(14, 30, 17, 30, 15);
+        const allSlots = [...morningSlots, ...afternoonSlots];
+
+        // 預設選項
+        let defaultOption = document.createElement('option');
+        defaultOption.text = "請選擇時間";
+        defaultOption.value = "";
+        timeSelect.add(defaultOption);
+
+        allSlots.forEach(slot => {
+            let option = document.createElement('option');
+            option.text = slot;
+            option.value = slot;
+            timeSelect.add(option);
         });
+    }
 
-        // 監聽表單送出事件
-        document.getElementById('bookingForm').addEventListener('submit', function(e) {
-            e.preventDefault(); // 防止網頁重新整理
+    // 輔助函式：產生時間區間
+    function generateIntervals(startHour, startMin, endHour, endMin, step) {
+        let times = [];
+        let current = new Date();
+        current.setHours(startHour, startMin, 0, 0);
+        
+        let end = new Date();
+        end.setHours(endHour, endMin, 0, 0);
 
-            const name = document.getElementById('name').value;
-            const phone = document.getElementById('phone').value;
-            const date = document.getElementById('date').value;
-            const time = document.getElementById('time').value;
-            const dept = document.getElementById('dept').value;
+        while (current <= end) {
+            let h = current.getHours().toString().padStart(2, '0');
+            let m = current.getMinutes().toString().padStart(2, '0');
+            times.push(`${h}:${m}`);
+            current.setMinutes(current.getMinutes() + step);
+        }
+        return times;
+    }
 
-            // 組合要回傳給機器人的訊息
-            // 這裡我們用一個特殊的格式，讓後端好處理
-            const msg = `[掛號資料]\n姓名：${name}\n電話：${phone}\n日期：${date}\n時間：${time}\n科別：${dept}`;
+    // --- 表單送出邏輯 ---
+    document.getElementById('bookingForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const name = document.getElementById('name').value;
+        const phone = document.getElementById('phone').value;
+        const date = document.getElementById('date').value;
+        const time = document.getElementById('time').value;
+        const dept = document.getElementById('dept').value;
+        const lineId = document.getElementById('lineId').value || "未提供";
 
-            // 透過 LIFF 幫使用者傳送訊息到聊天室
-            liff.sendMessages([{
-                type: 'text',
-                text: msg
-            }]).then(() => {
-                // 傳送成功後，關閉視窗
-                liff.closeWindow();
-            }).catch((err) => {
-                window.alert('訊息傳送失敗: ' + err);
-            });
-        });
-    </script>
+        // 組合訊息格式 (對應 Python 後端解析格式)
+        const msg = `[掛號資料]\n姓名：${name}\n電話：${phone}\n日期：${date}\n時間：${time}\n科別：${dept}\nLINEID：${lineId}`;
+
+        try {
+            await liff.sendMessages([{ type: 'text', text: msg }]);
+            liff.closeWindow(); // 發送成功後關閉視窗
+        } catch (error) {
+            document.getElementById('status').innerText = "發送失敗，請確認已加入好友";
+            alert("發送失敗: " + error);
+        }
+    });
+
+    initializeLiff();
+</script>
+
 </body>
 </html>
