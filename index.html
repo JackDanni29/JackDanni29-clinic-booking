@@ -45,7 +45,6 @@
             <select id="dept" required>
                 <option value="內科">內科</option>
                 <option value="針灸">針灸</option>
-                <option value="傷科">傷科</option>
             </select>
         </div>
         <input type="hidden" id="lineId">
@@ -147,10 +146,9 @@
         const date = document.getElementById('date').value;
         const time = document.getElementById('time').value;
         const dept = document.getElementById('dept').value;
-        const lineId = document.getElementById('lineId').value || "未提供";
 
         // 組合訊息格式 (對應 Python 後端解析格式)
-        const msg = `[掛號資料]\n姓名：${name}\n電話：${phone}\n日期：${date}\n時間：${time}\n科別：${dept}\nLINEID：${lineId}`;
+        const msg = `[掛號資料]\n姓名：${name}\n電話：${phone}\n日期：${date}\n時間：${time}\n科別：${dept}`;
 
         try {
             await liff.sendMessages([{ type: 'text', text: msg }]);
