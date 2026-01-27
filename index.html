@@ -27,10 +27,6 @@
             <input type="text" id="name" placeholder="請輸入真實姓名" required>
         </div>
         <div class="form-group">
-            <label for="phone">電話 (初診必填)</label>
-            <input type="tel" id="phone" placeholder="09xxxxxxxx" option>
-        </div>
-        <div class="form-group">
             <label for="date">預約日期 (週六日休診)</label>
             <input type="date" id="date" required>
         </div>
@@ -139,25 +135,25 @@
         return times;
     }
 
-    // --- 表單送出邏輯 ---
+// --- 表單送出邏輯 (修正版) ---
     document.getElementById('bookingForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         
         const name = document.getElementById('name').value;
-        const phone = document.getElementById('phone').value;
+        // const phone = document.getElementById('phone').value; // 這行刪除
         const date = document.getElementById('date').value;
         const time = document.getElementById('time').value;
         const dept = document.getElementById('dept').value;
 
-        // 組合訊息格式 (對應 Python 後端解析格式)
-        const msg = `[掛號資料]\n姓名：${name}\n電話：${phone}\n日期：${date}\n時間：${time}\n科別：${dept}`;
+        // 【修改】組合訊息格式 (移除了電話)
+        // 注意：為了讓後端好解析，我們把格式變短了
+        const msg = `[掛號資料]\n姓名：${name}\n日期：${date}\n時間：${time}\n科別：${dept}`;
 
         try {
             await liff.sendMessages([{ type: 'text', text: msg }]);
-            liff.closeWindow(); // 發送成功後關閉視窗
+            liff.closeWindow(); 
         } catch (error) {
             document.getElementById('status').innerText = "發送失敗，請確認已加入好友";
-            alert("發送失敗: " + error);
         }
     });
 
