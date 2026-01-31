@@ -135,6 +135,30 @@
         return times;
     }
 
+// --- 將此段 JS 放入您的掛號表單 HTML 中 ---
+window.onload = function() {
+    // 1. 取得網址參數
+    const urlParams = new URLSearchParams(window.location.search);
+    const autoName = urlParams.get('auto_name');
+    const autoDept = urlParams.get('auto_dept');
+
+    // 2. 如果有參數，自動填入對應的 input 欄位
+    // 請確認您的 HTML input id 是否正確 (例如 id="name", id="dept")
+    if (autoName) {
+        const nameInput = document.getElementById('name'); // 假設您的姓名欄位 id 是 name
+        if (nameInput) {
+            nameInput.value = autoName;
+        }
+    }
+
+    if (autoDept) {
+        const deptInput = document.getElementById('dept'); // 假設您的科別欄位 id 是 dept
+        if (deptInput) {
+            deptInput.value = autoDept;
+        }
+    }
+};
+
 // --- 表單送出邏輯 (修正版) ---
     document.getElementById('bookingForm').addEventListener('submit', async function(e) {
         e.preventDefault();
