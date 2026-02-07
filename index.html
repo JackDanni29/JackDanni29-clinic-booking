@@ -56,13 +56,11 @@
     // 初始化 LIFF
     async function initializeLiff() {
         try {
-            // 請換成您自己的 LIFF ID
-            await liff.init({ liffId: "2008852158-1G08SLHh" }); 
+            await liff.init({ liffId: "2008852158-1G08SLHh" }); // 請確認 ID 正確
             if (!liff.isLoggedIn()) {
                 liff.login();
             } else {
                 const profile = await liff.getProfile();
-                // 自動填入 LINE ID (雖然不會顯示在畫面上，但會跟著表單送出)
                 document.getElementById('lineId').value = profile.userId;
             }
         } catch (error) {
@@ -71,61 +69,53 @@
         }
     }
 
-    // --- 日期與時間邏輯設定 ---
+    // --- 變數定義 ---
     const dateInput = document.getElementById('date');
     const timeSelect = document.getElementById('time');
+    const deptSelect = document.getElementById('dept');
 
+    // 定義針灸禁用的時間
+    const acupunctureBlockList = ['11:45', '17:15'];
 
-    // 1. 設定日期限制：不能選過去，排除六日
-    const today = new Date().toISOString().split('T')[0];
-    dateInput.setAttribute('min', today); // 設定最小值為今天
+    // --- 1. 更新時間選項狀態 (處理針灸限制) ---
+    function updateTimeOptions() {
+        const selectedDept = deptSelect.value;
+        const options = timeSelect.options;
 
-    dateInput.addEventListener('change', function() {
-        const selectedDate = new Date(this.value);
-        const day = selectedDate.getDay(); // 0=週日, 6=週六
+        // 遍歷所有時間選項
+        for (let i = 0; i < options.length; i++) {
+            const timeVal = options[i].value;
+            
+            // 跳過預設的空選項
+            if (timeVal === "") continue;
 
-        // 如果選到週六或週日
-        if (day === 0 || day === 6) {
-            alert("抱歉，本院週六、週日休診，請選擇平日。");
-            this.value = ''; // 清空選擇
-            timeSelect.innerHTML = '<option value="">請先選擇日期</option>';
-            return;
+            // 判斷是否為「針灸」且「在黑名單內」
+            if (selectedDept === '針灸' && acupunctureBlockList.includes(timeVal)) {
+                options[i].disabled = true;
+                options[i].style.color = '#cccccc';
+                if (!options[i].text.includes("(不收針灸)")) {
+                    options[i].text = timeVal + " (不收針灸)";
+                }
+            } else {
+                options[i].disabled = false;
+                options[i].style.color = '#333333';
+                options[i].text = timeVal.replace(" (不收針灸)", "");
+            }
         }
 
-        // 產生時間選項
-        generateTimeSlots();
-    });
-
-    // 2. 產生時間選項 (09:00-12:00, 14:30-17:30, 間隔15分)
-    function generateTimeSlots() {
-        timeSelect.innerHTML = ''; // 清空
-        
-        const morningSlots = generateIntervals(9, 0, 11, 45, 15);
-        const afternoonSlots = generateIntervals(14, 30, 17, 15, 15);
-        const allSlots = [...morningSlots, ...afternoonSlots];
-
-        // 預設選項
-        let defaultOption = document.createElement('option');
-        defaultOption.text = "請選擇時間";
-        defaultOption.value = "";
-        timeSelect.add(defaultOption);
-
-        allSlots.forEach(slot => {
-            let option = document.createElement('option');
-            option.text = slot;
-            option.value = slot;
-            timeSelect.add(option);
-        });
+        // 防呆：如果當下已經選了禁選時間，強制清空
+        if (selectedDept === '針灸' && acupunctureBlockList.includes(timeSelect.value)) {
+            timeSelect.value = "";
+            alert("⚠️ 提醒您：\n針灸需預留治療時間，該診最後時段無法預約，請重新選擇時間。");
+        }
     }
 
-    // 輔助函式：產生時間區間
+    // --- 2. 產生時間區間 (修正版：不依賴當天日期) ---
     function generateIntervals(startHour, startMin, endHour, endMin, step) {
         let times = [];
-        let current = new Date();
-        current.setHours(startHour, startMin, 0, 0);
-        
-        let end = new Date();
-        end.setHours(endHour, endMin, 0, 0);
+        // 設定一個固定的基準日期 (例如 2000/01/01) 來計算時間，避免受當天時間影響
+        let current = new Date(2000, 0, 1, startHour, startMin);
+        let end = new Date(2000, 0, 1, endHour, endMin);
 
         while (current <= end) {
             let h = current.getHours().toString().padStart(2, '0');
@@ -136,48 +126,107 @@
         return times;
     }
 
-// --- 將此段 JS 放入您的掛號表單 HTML 中 ---
-window.onload = function() {
-    // 1. 取得網址參數
-    const urlParams = new URLSearchParams(window.location.search);
-    const autoName = urlParams.get('auto_name');
-    const autoDept = urlParams.get('auto_dept');
+    // --- 3. 產生時間下拉選單 ---
+    function generateTimeSlots() {
+        // 清空現有選項
+        timeSelect.innerHTML = ''; 
 
-    // 2. 如果有參數，自動填入對應的 input 欄位
-    // 請確認您的 HTML input id 是否正確 (例如 id="name", id="dept")
-    if (autoName) {
-        const nameInput = document.getElementById('name'); // 假設您的姓名欄位 id 是 name
-        if (nameInput) {
-            nameInput.value = autoName;
-        }
+        // 重新加入預設選項
+        let defaultOption = document.createElement('option');
+        defaultOption.text = "請選擇時間";
+        defaultOption.value = "";
+        timeSelect.add(defaultOption);
+        
+        // 產生時間陣列
+        const morningSlots = generateIntervals(9, 0, 11, 45, 15);
+        const afternoonSlots = generateIntervals(14, 30, 17, 15, 15);
+        const allSlots = [...morningSlots, ...afternoonSlots];
+
+        // 填入 Select
+        allSlots.forEach(slot => {
+            let option = document.createElement('option');
+            option.text = slot;
+            option.value = slot;
+            timeSelect.add(option);
+        });
+
+        // 【關鍵修正】產生完時間後，立刻執行一次過濾檢查！
+        // 這樣如果科別已經是針灸，11:45 就會馬上變灰
+        updateTimeOptions();
     }
 
-    if (autoDept) {
-        const deptInput = document.getElementById('dept'); // 假設您的科別欄位 id 是 dept
-        if (deptInput) {
-            deptInput.value = autoDept;
-        }
-    }
-};
+    // --- 事件監聽 ---
+    
+    // 科別改變 -> 更新時間狀態
+    deptSelect.addEventListener('change', updateTimeOptions);
 
-// --- 表單送出邏輯 (修正版) ---
+    // 設定日期最小值 (今天)
+    const today = new Date().toISOString().split('T')[0];
+    dateInput.setAttribute('min', today);
+
+    // 日期改變 -> 產生時間選單
+    dateInput.addEventListener('change', function() {
+        if (!this.value) return; // 如果清空了日期，不做事
+
+        const selectedDate = new Date(this.value);
+        const day = selectedDate.getDay(); // 0=週日, 6=週六
+
+        // 假日檢查
+        if (day === 0 || day === 6) {
+            alert("抱歉，本院週六、週日休診，請選擇平日。");
+            this.value = ''; 
+            timeSelect.innerHTML = '<option value="">請先選擇日期</option>';
+            return;
+        }
+
+        // 產生時間
+        generateTimeSlots();
+    });
+
+    // 網頁載入完成
+    window.onload = function() {
+        // 1. 處理 URL 參數 (自動帶入)
+        const urlParams = new URLSearchParams(window.location.search);
+        const autoName = urlParams.get('auto_name');
+        const autoDept = urlParams.get('auto_dept');
+
+        if (autoName) {
+            const nameInput = document.getElementById('name');
+            if (nameInput) nameInput.value = autoName;
+        }
+
+        if (autoDept) {
+            const deptInput = document.getElementById('dept');
+            if (deptInput) {
+                deptInput.value = autoDept;
+                // 如果自動帶入了針灸，也要觸發一次檢查
+                updateTimeOptions();
+            }
+        }
+    };
+
+    // --- 表單送出 ---
     document.getElementById('bookingForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         
         const name = document.getElementById('name').value;
-        // const phone = document.getElementById('phone').value; // 這行刪除
         const date = document.getElementById('date').value;
         const time = document.getElementById('time').value;
         const dept = document.getElementById('dept').value;
 
-        // 【修改】組合訊息格式 (移除了電話)
-        // 注意：為了讓後端好解析，我們把格式變短了
+        // 再次檢查是否選到了禁用時間 (最後一道防線)
+        if (dept === '針灸' && acupunctureBlockList.includes(time)) {
+            alert("❌ 預約失敗：針灸無法預約該診最後時段，請重新選擇。");
+            return;
+        }
+
         const msg = `[掛號資料]\n姓名：${name}\n日期：${date}\n時間：${time}\n科別：${dept}`;
 
         try {
             await liff.sendMessages([{ type: 'text', text: msg }]);
             liff.closeWindow(); 
         } catch (error) {
+            console.error(error);
             document.getElementById('status').innerText = "發送失敗，請確認已加入好友";
         }
     });
