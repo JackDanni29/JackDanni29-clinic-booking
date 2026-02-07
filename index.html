@@ -75,45 +75,6 @@
     const dateInput = document.getElementById('date');
     const timeSelect = document.getElementById('time');
 
-	// 假設您的科別欄位 ID 是 'dept'，時間欄位 ID 是 'time'
-	const deptSelect = document.getElementById('dept');
-	const timeSelect = document.getElementById('time');
-
-	// 定義針灸禁用的時間 (字串要跟 value 一模一樣)
-	const acupunctureBlockList = ['11:45', '17:15'];
-
-	function updateTimeOptions() {
-		const selectedDept = deptSelect.value;
-		const options = timeSelect.options;
-
-		// 遍歷所有時間選項
-		for (let i = 0; i < options.length; i++) {
-			const timeVal = options[i].value;
-        
-			// 判斷是否為「針灸」且「在黑名單內」
-			if (selectedDept === '針灸' && acupunctureBlockList.includes(timeVal)) {
-				options[i].disabled = true;           // 設為不可選
-				options[i].style.color = '#cccccc';   // 變灰色 (視覺提示)
-				options[i].text = timeVal + " (不收針灸)"; // 貼心提示
-			} else {
-				options[i].disabled = false;          // 恢復可選
-				options[i].style.color = '';          // 恢復顏色
-				options[i].text = timeVal.replace(" (不收針灸)", ""); // 移除提示
-			}
-		}
-
-		// 防呆：如果當下已經選了 11:45，卻切換成針灸，要強制清空
-		if (selectedDept === '針灸' && acupunctureBlockList.includes(timeSelect.value)) {
-			timeSelect.value = ""; // 清空選擇
-			alert("⚠️ 提醒您：\n針灸需預留治療時間，該診最後時段無法預約，請重新選擇時間。");
-		}
-	}
-
-	// 加入監聽器 (只要科別一變，就執行檢查)
-	deptSelect.addEventListener('change', updateTimeOptions);
-
-	// 初始化執行一次 (避免預設值就是針灸)
-	updateTimeOptions();
 
     // 1. 設定日期限制：不能選過去，排除六日
     const today = new Date().toISOString().split('T')[0];
