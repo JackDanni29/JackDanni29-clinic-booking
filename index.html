@@ -184,26 +184,50 @@
     });
 
     // 網頁載入完成
-    window.onload = function() {
-        // 1. 處理 URL 參數 (自動帶入)
-        const urlParams = new URLSearchParams(window.location.search);
-        const autoName = urlParams.get('auto_name');
-        const autoDept = urlParams.get('auto_dept');
+	window.onload = function() {
+		// 1. 取得網址參數
+		const urlParams = new URLSearchParams(window.location.search);
+		const autoName = urlParams.get('auto_name');
+		const autoDept = urlParams.get('auto_dept');
+		// 【新增】接收日期與時間參數
+		const autoDate = urlParams.get('auto_date'); 
+		const autoTime = urlParams.get('auto_time');
 
-        if (autoName) {
-            const nameInput = document.getElementById('name');
-            if (nameInput) nameInput.value = autoName;
-        }
+		// 2. 自動填入欄位
+		if (autoName) {
+			const nameInput = document.getElementById('name');
+			if (nameInput) nameInput.value = autoName;
+		}
+		if (autoDept) {
+			const deptInput = document.getElementById('dept');
+			if (deptInput) deptInput.value = autoDept;
+			// 如果有填科別，記得觸發時間過濾檢查
+			if (typeof updateTimeOptions === 'function') updateTimeOptions();
+		}
+    
+		// 【新增】自動填入日期與時間
+		if (autoDate) {
+			const dateInput = document.getElementById('date');
+			if (dateInput) {
+				dateInput.value = autoDate;
+				// 觸發 change 事件以產生時間選單 (重要！不然時間選單會是空的)
+				dateInput.dispatchEvent(new Event('change'));
+			}
+		}
 
-        if (autoDept) {
-            const deptInput = document.getElementById('dept');
-            if (deptInput) {
-                deptInput.value = autoDept;
-                // 如果自動帶入了針灸，也要觸發一次檢查
-                updateTimeOptions();
-            }
-        }
-    };
+		// 時間必須在日期選完、選單產生後才能填入
+		if (autoTime) {
+			// 使用 setTimeout 確保時間選單已經產生完畢
+			setTimeout(() => {
+				const timeSelect = document.getElementById('time');
+				if (timeSelect) {
+					timeSelect.value = autoTime;
+					// 再次檢查針灸限制
+					if (typeof updateTimeOptions === 'function') updateTimeOptions();
+				}
+			}, 100); // 延遲 0.1 秒
+		}
+	};
 
     // --- 表單送出 ---
     document.getElementById('bookingForm').addEventListener('submit', async function(e) {
